@@ -64,3 +64,7 @@ App runs at [http://localhost:3000](http://localhost:3000).
 | `npm run dev` | Start dev server at localhost:3000 |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

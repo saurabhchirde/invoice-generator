@@ -15,6 +15,7 @@ import { Trash2, Plus, Settings } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { loadSettings } from '@/types/settings';
 import type { Currency } from '@/types/settings';
+import { getNextInvoiceNumber } from '@/utils/invoiceNumber';
 
 export interface LineItem {
   id: string;
@@ -91,7 +92,7 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
       const s = loadSettings();
       return {
         id: invoice?.id || Date.now().toString(),
-        invoiceNo: invoice?.invoiceNo || '#405',
+        invoiceNo: invoice?.invoiceNo || getNextInvoiceNumber(),
         date: invoice?.date || toInputDate(new Date()),
         dueDate: invoice?.dueDate || toInputDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
         billTo: {
@@ -105,7 +106,12 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
           name: s.businessName,
           email: s.email,
           address: s.address,
-          bankDetails: [s.bankName, s.accountNumber, s.ifscCode].filter(Boolean).join('\n'),
+          bankDetails: [
+            s.bankName && `Bank Name: ${s.bankName}`,
+            s.accountName && `Account Name: ${s.accountName}`,
+            s.accountNumber && `Account: ${s.accountNumber}`,
+            s.ifscCode && `IFSC: ${s.ifscCode}`,
+          ].filter(Boolean).join('\n'),
           contact: s.contact,
         },
         lineItems: invoice?.lineItems || [{ id: '1', description: '', price: 0, quantity: 1, subtotal: 0 }],
@@ -332,53 +338,68 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
               </tr>
             </thead>
             <tbody>
-              {formData.lineItems.map((item) => (
+              {formData.lineItems.map((item, _, list) => (
                 <tr key={item.id} className="border-b border-gray-200">
-                  <td className={`py-${formData.lineItems.length > 2 ? 3 : 4} pr-4`}>{item.description}</td>
-                  <td className={`py-${formData.lineItems.length > 2 ? 3 : 4} text-center text-gray-600`}>{item.quantity}</td>
-                  <td className={`py-${formData.lineItems.length > 2 ? 3 : 4} text-right text-gray-600`}>{formatCurrency(item.price, formData.currency)}</td>
-                  <td className={`py-${formData.lineItems.length > 2 ? 3 : 4} text-right`}>{formatCurrency(item.subtotal, formData.currency)}</td>
+                  <td className={`py-${list.length > 2 ? 3 : 3} pr-4`}>{item.description}</td>
+                  <td className={`py-${list.length > 2 ? 3 : 3} text-center text-gray-600`}>{item.quantity}</td>
+                  <td className={`py-${list.length > 2 ? 3 : 3} text-right text-gray-600`}>{formatCurrency(item.price, formData.currency)}</td>
+                  <td className={`py-${list.length > 2 ? 3 : 3} text-right`}>{formatCurrency(item.subtotal, formData.currency)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {/* ── Totals + Terms side by side ── */}
-          <div className="flex justify-between mt-2 mb-8 gap-8">
-            {/* Terms on the left */}
-            <div className="flex-1 min-w-0">
-              {formData.visibleFields.terms && formData.notes && (
-                <div className="text-xs pt-2">
-                  <p className="font-semibold mb-1">{formData.termsTitle}</p>
-                  <p className="text-gray-600 leading-5 whitespace-pre-line">{formData.notes}</p>
-                </div>
-              )}
-            </div>
-            {/* Totals on the right */}
-            <table className="text-sm w-64 shrink-0">
-              <tbody>
-                {formData.visibleFields.discount && formData.discount > 0 && (
-                  <tr><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} pr-6 text-gray-600`}>Discount {formData.discount}%</td><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} text-right`}>-{formatCurrency(discountAmt, formData.currency)}</td></tr>
-                )}
-                <tr><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} pr-6 text-gray-600`}>Subtotal without Tax</td><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} text-right`}>{formatCurrency(afterDiscount, formData.currency)}</td></tr>
-                {formData.visibleFields.sgst && formData.sgst > 0 && (
-                  <tr><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} pr-6 text-gray-600`}>SGST {formData.sgst}%</td><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} text-right`}>{formatCurrency(sgstAmt, formData.currency)}</td></tr>
-                )}
-                {formData.visibleFields.cgst && formData.cgst > 0 && (
-                  <tr><td className={`py-1 pr-6 text-gray-600`}>CGST {formData.cgst}%</td><td className={`py-1 text-right`}>{formatCurrency(cgstAmt, formData.currency)}</td></tr>
-                )}
-                <tr className="border-t border-b border-gray-300">
-                  <td className="py-2 pr-6 font-bold">Total {formData.currency}</td>
-                  <td className="py-2 text-right font-bold">{formatCurrency(formData.total, formData.currency)}</td>
-                </tr>
-                <tr><td className="py-1 pr-6 text-gray-600">Amount Paid</td><td className="py-1 text-right">{formatCurrency(formData.paidAmount, formData.currency)}</td></tr>
-                <tr className="border-t border-gray-300">
-                  <td className="pt-2 pr-6 font-bold text-base">Amount Due ({formData.currency})</td>
-                  <td className="pt-2 text-right font-bold text-base">{formatCurrency(formData.dueAmount, formData.currency)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {/* ── Totals + Terms ── */}
+          {(() => {
+            const singleItem = formData.lineItems.length <= 1;
+            const termsBlock = formData.visibleFields.terms && formData.notes && (
+              <div className="text-xs pt-2">
+                <p className="font-semibold mb-1">{formData.termsTitle}</p>
+                <p className="text-gray-600 leading-5 whitespace-pre-line">{formData.notes}</p>
+              </div>
+            );
+            const totalsBlock = (
+              <table className="text-sm w-64 shrink-0">
+                <tbody>
+                  {formData.visibleFields.discount && formData.discount > 0 && (
+                    <tr><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} pr-6 text-gray-600`}>Discount {formData.discount}%</td><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} text-right`}>-{formatCurrency(discountAmt, formData.currency)}</td></tr>
+                  )}
+                  <tr><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} pr-6 text-gray-600`}>Subtotal without Tax</td><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} text-right`}>{formatCurrency(afterDiscount, formData.currency)}</td></tr>
+                  {formData.visibleFields.sgst && formData.sgst > 0 && (
+                    <tr><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} pr-6 text-gray-600`}>SGST {formData.sgst}%</td><td className={`py-${formData.lineItems.length > 2 ? 1.5 : 2} text-right`}>{formatCurrency(sgstAmt, formData.currency)}</td></tr>
+                  )}
+                  {formData.visibleFields.cgst && formData.cgst > 0 && (
+                    <tr><td className={`py-1 pr-6 text-gray-600`}>CGST {formData.cgst}%</td><td className={`py-1 text-right`}>{formatCurrency(cgstAmt, formData.currency)}</td></tr>
+                  )}
+                  <tr className={`border-t border-gray-300 ${(formData.paidAmount > 0 || (formData.visibleFields.terms && formData.notes)) ? 'border-b' : ''}`}>
+                    <td className={`py-2 pr-6 font-bold ${formData.paidAmount <= 0 ? 'text-base' : ''}`}>Total</td>
+                    <td className={`py-2 text-right font-bold ${formData.paidAmount <= 0 ? 'text-base' : ''}`}>{formatCurrency(formData.total, formData.currency)}</td>
+                  </tr>
+                  {formData.paidAmount > 0 && (
+                    <>
+                      <tr><td className="py-1 pr-6 text-gray-600">Amount Paid</td><td className="py-1 text-right">{formatCurrency(formData.paidAmount, formData.currency)}</td></tr>
+                      <tr className="border-t border-gray-300">
+                        <td className="pt-2 pr-6 font-bold text-base">Amount Due ({formData.currency})</td>
+                        <td className="pt-2 text-right font-bold text-base">{formatCurrency(formData.dueAmount, formData.currency)}</td>
+                      </tr>
+                    </>
+                  )}
+                </tbody>
+              </table>
+            );
+
+            return singleItem ? (
+              <div className="mt-2 mb-8">
+                <div className="flex justify-end">{totalsBlock}</div>
+                {termsBlock && <div className="mt-4">{termsBlock}</div>}
+              </div>
+            ) : (
+              <div className="flex justify-between mt-2 mb-8 gap-8">
+                <div className="flex-1 min-w-0">{termsBlock}</div>
+                {totalsBlock}
+              </div>
+            );
+          })()}
 
           {/* ── Payment / Bank Details ── */}
           {formData.visibleFields.payment && (
@@ -389,7 +410,22 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                 <div className="text-sm text-gray-600 leading-6">
                   {formData.paymentInstructions && <p className="mb-2">{formData.paymentInstructions}</p>}
                   {formData.visibleFields.bankDetails && formData.paymentMethod.bankDetails && (
-                    <p className="mt-1 whitespace-pre-line">{formData.paymentMethod.bankDetails}</p>
+                    <table className="mt-1 text-sm">
+                      <tbody>
+                        {formData.paymentMethod.bankDetails.split('\n').filter(Boolean).map((line, idx) => {
+                          const labels = ['Bank Name', 'Account Name', 'Account', 'IFSC'];
+                          const hasLabel = line.includes(':');
+                          const labelText = hasLabel ? line.split(':')[0] : (labels[idx] || '');
+                          const value = hasLabel ? line.slice(line.indexOf(':') + 1).trim() : line;
+                          return (
+                            <tr key={idx}>
+                              <td className="font-semibold text-gray-700 pr-6 py-0.5 whitespace-nowrap">{labelText}</td>
+                              <td className="text-gray-600 py-0.5">{value}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   )}
                 </div>
                 {qrCode && (

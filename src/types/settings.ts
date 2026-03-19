@@ -6,12 +6,15 @@ export interface BusinessSettings {
   contact: string;
   address: string;
   bankName: string;
+  accountName: string;
   accountNumber: string;
   ifscCode: string;
   paymentInstructions: string;
   paymentLabel: string;
   termsTitle: string;
   terms: string;
+  invoicePrefix: string;
+  invoiceStartNumber: number;
   currency: Currency;
   logo: string; // base64 data URL
   qrCode: string; // base64 data URL for payment QR code
@@ -24,12 +27,15 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   contact: '',
   address: '',
   bankName: '',
+  accountName: '',
   accountNumber: '',
   ifscCode: '',
   paymentInstructions: '',
   paymentLabel: 'Pay Online',
   termsTitle: 'TERMS AND CONDITIONS',
   terms: '',
+  invoicePrefix: '#',
+  invoiceStartNumber: 1,
   currency: 'USD',
   logo: '',
   qrCode: '',

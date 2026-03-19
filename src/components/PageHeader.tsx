@@ -28,8 +28,11 @@ export const PageHeader = forwardRef<HTMLDivElement, PageHeaderProps>(
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 h-16 flex items-center justify-between gap-3">
 
-          {/* Left: back + title */}
+          {/* Left: logo + back + title */}
           <div className="flex items-center gap-3 min-w-0">
+            {!onBack && (
+              <img src="/logo.png" alt="Invoice Generator" className="h-8 sm:h-10 w-8 sm:w-10 shrink-0" />
+            )}
             {onBack && (
               <button
                 onClick={onBack}

@@ -160,6 +160,25 @@ export function SettingsPage({ settings, onUpdate: update }: SettingsPageProps) 
               />
             </Field>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Invoice Prefix" hint="Use {YYYY} for year. e.g. #, INV-, INV-{YYYY}-">
+                <Input
+                  value={settings.invoicePrefix}
+                  onChange={e => update({ invoicePrefix: e.target.value })}
+                  placeholder="#"
+                />
+              </Field>
+              <Field label="Starting Invoice Number" hint="Next invoice will auto-increment from here.">
+                <Input
+                  type="number"
+                  min="1"
+                  value={settings.invoiceStartNumber}
+                  onChange={e => update({ invoiceStartNumber: Number(e.target.value) })}
+                  placeholder="1"
+                />
+              </Field>
+            </div>
+
           </CardContent>
         </Card>
 
@@ -175,6 +194,13 @@ export function SettingsPage({ settings, onUpdate: update }: SettingsPageProps) 
                 value={settings.bankName}
                 onChange={e => update({ bankName: e.target.value })}
                 placeholder="e.g. HDFC Bank"
+              />
+            </Field>
+            <Field label="Account Name">
+              <Input
+                value={settings.accountName}
+                onChange={e => update({ accountName: e.target.value })}
+                placeholder="e.g. John Doe"
               />
             </Field>
             <Field label="Account Number">
