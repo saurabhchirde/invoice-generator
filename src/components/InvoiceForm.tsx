@@ -6,6 +6,26 @@ const formatDate = (iso: string) => {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
+
+const numberToWords = (num: number): string => {
+  if (num === 0) return 'Zero Only';
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const toWords = (n: number): string => {
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + toWords(n % 100) : '');
+    if (n < 100000) return toWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + toWords(n % 1000) : '');
+    if (n < 10000000) return toWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + toWords(n % 100000) : '');
+    return toWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + toWords(n % 10000000) : '');
+  };
+  const rupees = Math.floor(num);
+  const paise = Math.round((num - rupees) * 100);
+  let result = toWords(rupees);
+  if (paise > 0) result += ' and ' + toWords(paise) + ' Paise';
+  return result + ' Only';
+};
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -371,7 +391,7 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                   {formData.visibleFields.cgst && formData.cgst > 0 && (
                     <tr><td className={`py-1 pr-6 text-gray-600`}>CGST {formData.cgst}%</td><td className={`py-1 text-right`}>{formatCurrency(cgstAmt, formData.currency)}</td></tr>
                   )}
-                  <tr className={`border-t border-gray-300 ${(formData.paidAmount > 0 || (formData.visibleFields.terms && formData.notes)) ? 'border-b' : ''}`}>
+                  <tr className="border-t border-b border-gray-300">
                     <td className={`py-2 pr-6 font-bold ${formData.paidAmount <= 0 ? 'text-base' : ''}`}>Total</td>
                     <td className={`py-2 text-right font-bold ${formData.paidAmount <= 0 ? 'text-base' : ''}`}>{formatCurrency(formData.total, formData.currency)}</td>
                   </tr>
@@ -388,15 +408,29 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
               </table>
             );
 
+            const totalInWordsBlock = (
+              <div className="text-xs text-gray-500 mt-1 w-64 text-right">
+                <span className="font-medium text-gray-700">{numberToWords(formData.total)}</span>
+              </div>
+            );
+
             return singleItem ? (
               <div className="mt-2 mb-8">
-                <div className="flex justify-end">{totalsBlock}</div>
+                <div className="flex flex-col items-end">
+                  {totalsBlock}
+                  {totalInWordsBlock}
+                </div>
                 {termsBlock && <div className="mt-4">{termsBlock}</div>}
               </div>
             ) : (
-              <div className="flex justify-between mt-2 mb-8 gap-8">
-                <div className="flex-1 min-w-0">{termsBlock}</div>
-                {totalsBlock}
+              <div className="mt-2 mb-8">
+                <div className="flex justify-between gap-8">
+                  <div className="flex-1 min-w-0">{termsBlock}</div>
+                  <div className="flex flex-col items-end">
+                    {totalsBlock}
+                    {totalInWordsBlock}
+                  </div>
+                </div>
               </div>
             );
           })()}
@@ -407,7 +441,7 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
               <div className="border-t border-gray-300 mb-5" />
               {formData.paymentLabel && <p className="font-bold text-gray-800 mb-1">{formData.paymentLabel}</p>}
               <div className="flex items-center justify-between gap-6">
-                <div className="text-sm text-gray-600 leading-6">
+                <div className="text-sm text-gray-600 leading-6 mt-2">
                   {formData.paymentInstructions && <p className="mb-2">{formData.paymentInstructions}</p>}
                   {formData.visibleFields.bankDetails && formData.paymentMethod.bankDetails && (
                     <table className="mt-1 text-sm">
@@ -429,8 +463,8 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                   )}
                 </div>
                 {qrCode && (
-                  <div className="shrink-0 flex flex-col items-center gap-2 -mt-6">
-                    <img src={qrCode} alt="Payment QR" className="w-30 h-30 object-contain border border-gray-200 rounded p-1" />
+                  <div className="shrink-0 flex flex-col items-center gap-2 -mt-4">
+                    <img src={qrCode} alt="Payment QR" className="w-28 h-28 object-contain border border-gray-200 rounded p-1" />
                     <p className="text-[10px] text-gray-500 text-center leading-tight">Pay via GPay, PhonePe &amp; more</p>
                   </div>
                 )}
