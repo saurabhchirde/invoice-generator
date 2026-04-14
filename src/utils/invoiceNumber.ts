@@ -1,6 +1,5 @@
-import { loadSettings } from '@/types/settings';
-
-const STORAGE_KEY = 'invoices';
+import type { Invoice } from "../components/InvoiceForm";
+import type { BusinessSettings } from "../types/settings";
 
 /**
  * Replaces {YYYY} in the prefix with the current year.
@@ -15,28 +14,24 @@ function resolvePrefix(raw: string): string {
  * Supports prefixes with year placeholders: e.g. "INV-{YYYY}-"
  * Extracts the trailing number from existing invoices to determine the next.
  */
-export function getNextInvoiceNumber(): string {
-  const { invoicePrefix, invoiceStartNumber } = loadSettings();
-  const prefix = resolvePrefix(invoicePrefix || '#');
-  const startNum = invoiceStartNumber || 1;
+export function getNextInvoiceNumber(
+  invoices: Invoice[],
+  settings: Pick<BusinessSettings, "invoicePrefix" | "invoiceStartNumber">,
+): string {
+  const prefix = resolvePrefix(settings.invoicePrefix || "#");
+  const startNum = settings.invoiceStartNumber || 1;
 
-  try {
-    const invoices = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-
-    let maxNum = 0;
-    for (const inv of invoices) {
-      const no: string = inv.invoiceNo || '';
-      // Extract the last sequence of digits from the invoice number
-      const matches = no.match(/(\d+)/g);
-      if (matches) {
-        const lastNum = parseInt(matches[matches.length - 1], 10);
-        maxNum = Math.max(maxNum, lastNum);
-      }
+  let maxNum = 0;
+  for (const inv of invoices) {
+    const no: string = inv.invoiceNo || "";
+    // Extract the last sequence of digits from the invoice number
+    const matches = no.match(/(\d+)/g);
+    if (matches) {
+      const lastNum = parseInt(matches[matches.length - 1], 10);
+      maxNum = Math.max(maxNum, lastNum);
     }
-
-    const nextNum = maxNum >= startNum ? maxNum + 1 : startNum;
-    return `${prefix}${nextNum}`;
-  } catch {
-    return `${prefix}${startNum}`;
   }
+
+  const nextNum = maxNum >= startNum ? maxNum + 1 : startNum;
+  return `${prefix}${nextNum}`;
 }

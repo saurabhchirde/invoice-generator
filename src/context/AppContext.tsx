@@ -1,34 +1,54 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Invoice } from '../components/InvoiceForm';
-import { BusinessSettings, loadSettings, saveSettings } from '../types/settings';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { Invoice } from "../components/InvoiceForm";
+import { BusinessSettings } from "../types/settings";
+import { DEFAULT_SETTINGS, StorageAdapter } from "../lib/storageAdapter";
 
 interface AppContextType {
   invoices: Invoice[];
-  saveInvoice: (invoice: Invoice) => 'created' | 'updated';
-  deleteInvoice: (id: string) => void;
+  saveInvoice: (invoice: Invoice) => Promise<"created" | "updated">;
+  deleteInvoice: (id: string) => Promise<void>;
   settings: BusinessSettings;
   updateSettings: (patch: Partial<BusinessSettings>) => void;
-  persistSettings: () => void;
+  persistSettings: () => Promise<void>;
+  dataLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType>(null!);
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [invoices, setInvoices] = useState<Invoice[]>(() => {
-    try { return JSON.parse(localStorage.getItem('invoices') || '[]'); } catch { return []; }
-  });
-  const [settings, setSettings] = useState<BusinessSettings>(loadSettings);
+export function AppProvider({
+  adapter,
+  children,
+}: {
+  adapter: StorageAdapter;
+  children: ReactNode;
+}) {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('invoices', JSON.stringify(invoices));
-  }, [invoices]);
+    setDataLoading(true);
+    Promise.all([adapter.loadInvoices(), adapter.loadSettings()])
+      .then(([invs, sett]) => {
+        setInvoices(invs);
+        setSettings(sett);
+      })
+      .finally(() => setDataLoading(false));
+  }, [adapter]);
 
-  const saveInvoice = (invoice: Invoice): 'created' | 'updated' => {
-    let result: 'created' | 'updated' = 'created';
-    setInvoices(prev => {
-      const idx = prev.findIndex(i => i.id === invoice.id);
+  const saveInvoice = async (
+    invoice: Invoice,
+  ): Promise<"created" | "updated"> => {
+    const result = await adapter.saveInvoice(invoice);
+    setInvoices((prev) => {
+      const idx = prev.findIndex((i) => i.id === invoice.id);
       if (idx >= 0) {
-        result = 'updated';
         const updated = [...prev];
         updated[idx] = invoice;
         return updated;
@@ -38,16 +58,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return result;
   };
 
-  const deleteInvoice = (id: string) =>
-    setInvoices(prev => prev.filter(i => i.id !== id));
+  const deleteInvoice = async (id: string): Promise<void> => {
+    await adapter.deleteInvoice(id);
+    setInvoices((prev) => prev.filter((i) => i.id !== id));
+  };
 
   const updateSettings = (patch: Partial<BusinessSettings>) =>
-    setSettings(prev => ({ ...prev, ...patch }));
+    setSettings((prev) => ({ ...prev, ...patch }));
 
-  const persistSettings = () => saveSettings(settings);
+  const persistSettings = async (): Promise<void> => {
+    await adapter.persistSettings(settings);
+  };
 
   return (
-    <AppContext.Provider value={{ invoices, saveInvoice, deleteInvoice, settings, updateSettings, persistSettings }}>
+    <AppContext.Provider
+      value={{
+        invoices,
+        saveInvoice,
+        deleteInvoice,
+        settings,
+        updateSettings,
+        persistSettings,
+        dataLoading,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

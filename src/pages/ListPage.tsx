@@ -1,20 +1,25 @@
-import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import { InvoiceList } from '../components/InvoiceList';
-import { Invoice } from '../components/InvoiceForm';
-import { toast } from 'sonner';
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/AppContext";
+import { InvoiceList } from "../components/InvoiceList";
+import { Invoice } from "../components/InvoiceForm";
+import { toast } from "sonner";
 
 export default function ListPage() {
   const { invoices, deleteInvoice } = useApp();
   const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    deleteInvoice(id);
-    toast.success('Invoice deleted.');
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteInvoice(id);
+      toast.success("Invoice deleted.");
+    } catch (error) {
+      console.error("Failed to delete invoice:", error);
+      toast.error("Failed to delete invoice.");
+    }
   };
 
   const handleClone = (invoice: Invoice) => {
-    navigate('/invoice/new', { state: { cloneFrom: invoice } });
+    navigate("/invoice/new", { state: { cloneFrom: invoice } });
   };
 
   return (
@@ -22,10 +27,12 @@ export default function ListPage() {
       invoices={invoices}
       onEdit={(invoice: Invoice) => navigate(`/invoice/${invoice.id}`)}
       onDelete={handleDelete}
-      onPreview={(invoice: Invoice) => navigate(`/invoice/${invoice.id}/preview`)}
+      onPreview={(invoice: Invoice) =>
+        navigate(`/invoice/${invoice.id}/preview`)
+      }
       onClone={handleClone}
-      onNew={() => navigate('/invoice/new')}
-      onSettings={() => navigate('/settings')}
+      onNew={() => navigate("/invoice/new")}
+      onSettings={() => navigate("/settings")}
     />
   );
 }
