@@ -27,13 +27,13 @@ const AuthContext = createContext<AuthContextType>(null!);
 const GUEST_FLAG_KEY = "invoice_generator_skip_login";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Only show loading state when Firebase is configured (avoids flashing spinner in localStorage mode)
+  // Only show loading state when Firebase is configured (avoids flashing spinner in sessionStorage mode)
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(isFirebaseEnabled);
   const [isGuest, setIsGuest] = useState(() => {
     if (!isFirebaseEnabled) return false;
     // Check if user previously skipped login
-    return localStorage.getItem(GUEST_FLAG_KEY) === "true";
+    return sessionStorage.getItem(GUEST_FLAG_KEY) === "true";
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthLoading(false);
       // If user logs in, clear the guest flag and set isGuest to false
       if (u) {
-        localStorage.removeItem(GUEST_FLAG_KEY);
+        sessionStorage.removeItem(GUEST_FLAG_KEY);
         setIsGuest(false);
       }
     });
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleSkipLogin = () => {
-    localStorage.setItem(GUEST_FLAG_KEY, "true");
+    sessionStorage.setItem(GUEST_FLAG_KEY, "true");
     setIsGuest(true);
     setAuthLoading(false);
   };
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     await signOutUser();
     // When signing out, set guest flag so they don't see login screen again
-    localStorage.setItem(GUEST_FLAG_KEY, "true");
+    sessionStorage.setItem(GUEST_FLAG_KEY, "true");
     setIsGuest(true);
   };
 
