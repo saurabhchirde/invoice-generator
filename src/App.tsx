@@ -43,6 +43,10 @@ function AppWithAdapter() {
             user.uid,
             localInvoices,
             localSettings,
+            {
+              displayName: user.displayName ?? null,
+              email: user.email ?? null,
+            },
           );
           toast.success(`Synced ${localInvoices.length} invoices to cloud!`);
         }

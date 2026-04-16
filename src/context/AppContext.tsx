@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import { Invoice } from "../components/InvoiceForm";
@@ -16,6 +17,7 @@ interface AppContextType {
   settings: BusinessSettings;
   updateSettings: (patch: Partial<BusinessSettings>) => void;
   persistSettings: () => Promise<void>;
+  queueImageDeletion: (fn: () => Promise<void>) => void;
   dataLoading: boolean;
 }
 
@@ -31,6 +33,7 @@ export function AppProvider({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
   const [dataLoading, setDataLoading] = useState(true);
+  const pendingDeletionsRef = useRef<Array<() => Promise<void>>>([]);
 
   useEffect(() => {
     setDataLoading(true);
@@ -66,7 +69,14 @@ export function AppProvider({
   const updateSettings = (patch: Partial<BusinessSettings>) =>
     setSettings((prev) => ({ ...prev, ...patch }));
 
+  const queueImageDeletion = (fn: () => Promise<void>) => {
+    pendingDeletionsRef.current.push(fn);
+  };
+
   const persistSettings = async (): Promise<void> => {
+    // Flush deferred Storage deletions only when the user explicitly saves
+    const deletions = pendingDeletionsRef.current.splice(0);
+    await Promise.all(deletions.map((fn) => fn().catch(() => {})));
     await adapter.persistSettings(settings);
   };
 
@@ -79,6 +89,7 @@ export function AppProvider({
         settings,
         updateSettings,
         persistSettings,
+        queueImageDeletion,
         dataLoading,
       }}
     >

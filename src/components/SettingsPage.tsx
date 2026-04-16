@@ -9,6 +9,7 @@ import { Upload, X, Loader2 } from "lucide-react";
 import { isFirebaseEnabled } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { uploadImage, deleteImage } from "@/lib/firebaseStorage";
+import { useApp } from "@/context/AppContext";
 
 interface SettingsPageProps {
   settings: BusinessSettings;
@@ -42,6 +43,7 @@ export function SettingsPage({
   const [logoLoading, setLogoLoading] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
   const { user } = useAuth();
+  const { queueImageDeletion } = useApp();
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -85,16 +87,18 @@ export function SettingsPage({
     }
   };
 
-  const handleLogoRemove = async () => {
+  const handleLogoRemove = () => {
     if (isFirebaseEnabled && user) {
-      await deleteImage(user.uid, "logo").catch(() => {});
+      const uid = user.uid;
+      queueImageDeletion(() => deleteImage(uid, "logo"));
     }
     update({ logo: "" });
   };
 
-  const handleQrRemove = async () => {
+  const handleQrRemove = () => {
     if (isFirebaseEnabled && user) {
-      await deleteImage(user.uid, "qrCode").catch(() => {});
+      const uid = user.uid;
+      queueImageDeletion(() => deleteImage(uid, "qrCode"));
     }
     update({ qrCode: "" });
   };
