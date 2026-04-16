@@ -149,6 +149,7 @@ export interface Invoice {
   cgst: number;
   total: number;
   paidAmount: number;
+  advancePaidDate: string;
   dueAmount: number;
   notes: string;
   paymentInstructions: string;
@@ -209,6 +210,7 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
         cgst: invoice?.cgst ?? 0,
         total: invoice?.total ?? 0,
         paidAmount: invoice?.paidAmount ?? 0,
+        advancePaidDate: invoice?.advancePaidDate ?? "",
         dueAmount: invoice?.dueAmount ?? 0,
         notes: invoice?.notes ?? s.terms,
         paymentInstructions:
@@ -599,9 +601,19 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                       {formatCurrency(formData.total, formData.currency)}
                     </td>
                   </tr>
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="text-right text-xs text-gray-500 pb-1 pt-0.5"
+                    >
+                      <span className="font-medium text-gray-700">
+                        {numberToWords(formData.total)}
+                      </span>
+                    </td>
+                  </tr>
                   {formData.paidAmount > 0 && (
                     <>
-                      <tr>
+                      <tr className="border-t border-gray-200">
                         <td className="py-1 pr-6 text-gray-600">Amount Paid</td>
                         <td className="py-1 text-right">
                           {formatCurrency(
@@ -610,16 +622,37 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                           )}
                         </td>
                       </tr>
+                      {formData.advancePaidDate && (
+                        <tr>
+                          <td className="pb-1 pr-6 text-gray-500 text-xs">
+                            Advance Paid Date
+                          </td>
+                          <td className="pb-1 text-right text-xs text-gray-500">
+                            {formatDate(formData.advancePaidDate)}
+                          </td>
+                        </tr>
+                      )}
                       <tr className="border-t border-gray-300">
-                        <td className="pt-2 pr-6 font-bold text-base">
-                          Amount Due ({formData.currency})
-                        </td>
-                        <td className="pt-2 text-right font-bold text-base">
-                          {formatCurrency(
-                            formData.dueAmount,
-                            formData.currency,
-                          )}
-                        </td>
+                        {formData.dueAmount <= 0 ? (
+                          <td
+                            colSpan={2}
+                            className="pt-2 text-center font-bold text-base text-green-600"
+                          >
+                            ✓ Paid
+                          </td>
+                        ) : (
+                          <>
+                            <td className="pt-2 pr-6 font-bold text-base">
+                              Amount Due ({formData.currency})
+                            </td>
+                            <td className="pt-2 text-right font-bold text-base">
+                              {formatCurrency(
+                                formData.dueAmount,
+                                formData.currency,
+                              )}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     </>
                   )}
@@ -627,19 +660,10 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
               </table>
             );
 
-            const totalInWordsBlock = (
-              <div className="text-xs text-gray-500 mt-1 w-64 text-right">
-                <span className="font-medium text-gray-700">
-                  {numberToWords(formData.total)}
-                </span>
-              </div>
-            );
-
             return singleItem ? (
               <div className="mt-2 mb-8">
                 <div className="flex flex-col items-end">
                   {totalsBlock}
-                  {totalInWordsBlock}
                 </div>
                 {termsBlock && <div className="mt-4">{termsBlock}</div>}
               </div>
@@ -649,7 +673,6 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                   <div className="flex-1 min-w-0">{termsBlock}</div>
                   <div className="flex flex-col items-end">
                     {totalsBlock}
-                    {totalInWordsBlock}
                   </div>
                 </div>
               </div>
@@ -1513,24 +1536,42 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
               <CardTitle>Payment Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="paidAmount">
-                  Paid Amount ({getCurrencySymbol(formData.currency)})
-                </Label>
-                <Input
-                  id="paidAmount"
-                  type="number"
-                  min="0"
-                  max={formData.total}
-                  step="0.01"
-                  value={formData.paidAmount}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      paidAmount: Number(e.target.value),
-                    }))
-                  }
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="paidAmount">
+                    Paid Amount ({getCurrencySymbol(formData.currency)})
+                  </Label>
+                  <Input
+                    id="paidAmount"
+                    type="number"
+                    min="0"
+                    max={formData.total}
+                    step="0.01"
+                    value={formData.paidAmount}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        paidAmount: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                {formData.paidAmount > 0 && (
+                  <div>
+                    <Label htmlFor="advancePaidDate">Advance Paid Date</Label>
+                    <Input
+                      id="advancePaidDate"
+                      type="date"
+                      value={formData.advancePaidDate}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          advancePaidDate: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
               <div className="p-4 bg-gray-50 rounded-lg space-y-2">
                 <div className="flex justify-between">

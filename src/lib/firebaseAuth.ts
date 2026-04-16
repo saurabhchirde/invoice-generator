@@ -6,13 +6,19 @@ import {
   User,
 } from "firebase/auth";
 import { firebaseAuth } from "./firebase";
+import { FirestoreAdapter } from "./firestoreAdapter";
 
 export type { User as FirebaseUser };
 
-export function signInWithGoogle(): Promise<void> {
+export async function signInWithGoogle(): Promise<void> {
   if (!firebaseAuth) throw new Error("Firebase is not configured");
   const provider = new GoogleAuthProvider();
-  return signInWithPopup(firebaseAuth, provider).then(() => undefined);
+  const result = await signInWithPopup(firebaseAuth, provider);
+  const { user } = result;
+  await new FirestoreAdapter(user.uid).upsertUserProfile({
+    displayName: user.displayName ?? null,
+    email: user.email ?? null,
+  });
 }
 
 export function signOutUser(): Promise<void> {

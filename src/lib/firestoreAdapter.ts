@@ -5,6 +5,7 @@ import {
   setDoc,
   deleteDoc,
   getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { firestore } from "./firebase";
 import type { StorageAdapter } from "./storageAdapter";
@@ -17,6 +18,33 @@ export class FirestoreAdapter implements StorageAdapter {
 
   constructor(uid: string) {
     this.uid = uid;
+  }
+
+  async upsertUserProfile(profile: {
+    displayName: string | null;
+    email: string | null;
+  }): Promise<void> {
+    const userRef = doc(firestore!, `users/${this.uid}`);
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      // Update mutable fields only; preserve original createdAt
+      await setDoc(
+        userRef,
+        {
+          displayName: profile.displayName,
+          email: profile.email,
+          lastLoginAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+    } else {
+      await setDoc(userRef, {
+        displayName: profile.displayName,
+        email: profile.email,
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+      });
+    }
   }
 
   private invoicesCol() {
