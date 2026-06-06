@@ -23,7 +23,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { LoginModal } from "./LoginModal";
 
-type FilterType = "all" | "paid" | "due" | "overdue";
+type InvoiceStatus = "paid" | "partial" | "overdue" | "due";
+type FilterType = "all" | InvoiceStatus;
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -163,8 +164,9 @@ export function InvoiceList({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const getStatus = (invoice: Invoice): "paid" | "overdue" | "due" => {
+  const getStatus = (invoice: Invoice): InvoiceStatus => {
     if (invoice.dueAmount <= 0) return "paid";
+    if (invoice.paidAmount > 0) return "partial";
     const diffDays = Math.ceil(
       (new Date(invoice.dueDate).getTime() - Date.now()) /
         (1000 * 60 * 60 * 24),
@@ -190,6 +192,13 @@ export function InvoiceList({
         </Badge>
       );
     }
+    if (invoice.paidAmount > 0) {
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+          Partial Paid
+        </Badge>
+      );
+    }
     if (diffDays < 0) {
       return <Badge variant="destructive">Overdue</Badge>;
     } else if (diffDays <= 7) {
@@ -202,6 +211,7 @@ export function InvoiceList({
   const filterPills: { key: FilterType; label: string }[] = [
     { key: "all", label: "All" },
     { key: "paid", label: "Paid" },
+    { key: "partial", label: "Partial" },
     { key: "due", label: "Due" },
     { key: "overdue", label: "Overdue" },
   ];
@@ -233,6 +243,16 @@ export function InvoiceList({
       dot: "bg-green-500",
     },
     {
+      key: "partial",
+      label: "Partial Paid",
+      count: invoices.filter((i) => getStatus(i) === "partial").length,
+      amount: invoices
+        .filter((i) => getStatus(i) === "partial")
+        .reduce((s, i) => s + Math.max(i.paidAmount, 0), 0),
+      color: "text-blue-600",
+      dot: "bg-blue-500",
+    },
+    {
       key: "due",
       label: "Due",
       count: invoices.filter((i) => getStatus(i) === "due").length,
@@ -253,6 +273,7 @@ export function InvoiceList({
       dot: "bg-red-500",
     },
   ];
+  const visibleStats = stats.filter(({ key, count }) => key === "all" || count > 0);
 
   return (
     <div>
@@ -496,7 +517,7 @@ export function InvoiceList({
               </button>
             </div>
             <div className="divide-y">
-              {stats.map(({ key, label, count, amount, color, dot }, i) => (
+              {visibleStats.map(({ key, label, count, amount, color, dot }, i) => (
                 <button
                   key={key}
                   onClick={() => {
