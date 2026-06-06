@@ -50,13 +50,18 @@ export async function syncLocalDataToFirestore(
       batch.set(invoiceRef, invoice);
     }
 
-    // Sync settings
+    // Sync settings only for new Firebase accounts so existing cloud settings
+    // remain the source of truth for returning users.
     const settingsRef = doc(firestore, `users/${uid}/settings/default`);
-    batch.set(settingsRef, settings);
+    const settingsSnap = await getDoc(settingsRef);
+    const didSyncSettings = !settingsSnap.exists();
+    if (didSyncSettings) {
+      batch.set(settingsRef, settings);
+    }
 
     await batch.commit();
     console.log(
-      `✓ Synced ${invoices.length} invoices and settings to Firestore`,
+      `✓ Synced ${invoices.length} invoices${didSyncSettings ? " and settings" : ""} to Firestore`,
     );
   } catch (error) {
     console.error("Failed to sync local data to Firestore:", error);

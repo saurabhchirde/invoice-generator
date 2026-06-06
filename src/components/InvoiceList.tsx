@@ -17,10 +17,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { Invoice } from "./InvoiceForm";
-import { loadSettings } from "@/types/settings";
 import { PageHeader } from "./PageHeader";
 import { isFirebaseEnabled } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useApp } from "@/context/AppContext";
 import { LoginModal } from "./LoginModal";
 
 type FilterType = "all" | "paid" | "due" | "overdue";
@@ -140,7 +140,7 @@ export function InvoiceList({
   const [statsOpen, setStatsOpen] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
-  const { currency } = loadSettings();
+  const { settings } = useApp();
   const { signOut, user, isGuest } = useAuth();
   const statsRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -172,8 +172,8 @@ export function InvoiceList({
     return diffDays < 0 ? "overdue" : "due";
   };
 
-  const formatCurrency = (amount: number) => {
-    const symbol = currency === "USD" ? "$" : "₹";
+  const formatCurrency = (amount: number, invoiceCurrency: string) => {
+    const symbol = invoiceCurrency === "USD" ? "$" : "₹";
     return `${symbol}${amount.toFixed(2)}`;
   };
 
@@ -429,7 +429,10 @@ export function InvoiceList({
                           Total
                         </p>
                         <p className="font-semibold text-black">
-                          {formatCurrency(invoice.total)}
+                          {formatCurrency(
+                            invoice.total,
+                            invoice?.currency || settings.currency || "USD",
+                          )}
                         </p>
                       </div>
                       <div className="min-w-0">
@@ -439,7 +442,10 @@ export function InvoiceList({
                         <p
                           className={`font-semibold ${invoice.dueAmount > 0 ? "text-red-600" : "text-green-600"}`}
                         >
-                          {formatCurrency(invoice.dueAmount)}
+                          {formatCurrency(
+                            invoice.dueAmount,
+                            invoice?.currency || settings.currency || "USD",
+                          )}
                         </p>
                         <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
                           <div
@@ -515,7 +521,7 @@ export function InvoiceList({
                     <span
                       className={`text-sm font-semibold tabular-nums ${color}`}
                     >
-                      {formatCurrency(amount)}
+                      {formatCurrency(amount, settings.currency || "USD")}
                     </span>
                     {filter === key && (
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-900" />
@@ -544,7 +550,10 @@ export function InvoiceList({
       )}
 
       {/* Login Modal */}
-      <LoginModal isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+      />
     </div>
   );
 }
