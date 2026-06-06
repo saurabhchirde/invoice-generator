@@ -1,4 +1,4 @@
-export type Currency = 'USD' | 'INR';
+export type Currency = "USD" | "INR";
 
 export interface BusinessSettings {
   businessName: string;
@@ -22,29 +22,29 @@ export interface BusinessSettings {
 }
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
-  businessName: '',
-  email: '',
-  contact: '',
-  address: '',
-  bankName: '',
-  accountName: '',
-  accountNumber: '',
-  ifscCode: '',
-  paymentInstructions: '',
-  paymentLabel: 'Pay Online',
-  termsTitle: 'TERMS AND CONDITIONS',
-  terms: '',
-  invoicePrefix: '#',
+  businessName: "",
+  email: "",
+  contact: "",
+  address: "",
+  bankName: "",
+  accountName: "",
+  accountNumber: "",
+  ifscCode: "",
+  paymentInstructions: "",
+  paymentLabel: "Pay Online",
+  termsTitle: "TERMS AND CONDITIONS",
+  terms: "",
+  invoicePrefix: "#",
   invoiceStartNumber: 1,
-  currency: 'USD',
-  logo: '',
-  qrCode: '',
-  website: '',
+  currency: "USD",
+  logo: "",
+  qrCode: "",
+  website: "",
 };
 
-const STORAGE_KEY = 'businessSettings';
+const STORAGE_KEY = "businessSettings";
 
-export function loadSettings(): BusinessSettings {
+export function loadLocalSettings(): BusinessSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };

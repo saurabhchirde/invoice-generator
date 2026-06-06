@@ -6,7 +6,7 @@ import { AppProvider } from "./context/AppContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AuthGuard } from "./components/AuthGuard";
 import { isFirebaseEnabled } from "./lib/firebase";
-import { LocalStorageAdapter } from "./lib/storageAdapter";
+import { DEFAULT_SETTINGS, LocalStorageAdapter } from "./lib/storageAdapter";
 import { FirestoreAdapter } from "./lib/firestoreAdapter";
 import { syncLocalDataToFirestore } from "./lib/syncData";
 import ListPage from "./pages/ListPage";
@@ -36,9 +36,11 @@ function AppWithAdapter() {
         const localAdapter = new LocalStorageAdapter();
         const localInvoices = await localAdapter.loadInvoices();
         const localSettings = await localAdapter.loadSettings();
+        const hasLocalSettings =
+          JSON.stringify(localSettings) !== JSON.stringify(DEFAULT_SETTINGS);
 
         // Only sync if there's data to sync
-        if (localInvoices.length > 0 || localSettings.businessName) {
+        if (localInvoices.length > 0 || hasLocalSettings) {
           await syncLocalDataToFirestore(
             user.uid,
             localInvoices,
@@ -48,7 +50,10 @@ function AppWithAdapter() {
               email: user.email ?? null,
             },
           );
-          toast.success(`Synced ${localInvoices.length} invoices to cloud!`);
+          if (localInvoices.length > 0) {
+            await localAdapter.clearInvoices();
+            toast.success(`Synced ${localInvoices.length} invoices to cloud!`);
+          }
         }
       } catch (error) {
         console.error("Sync failed:", error);

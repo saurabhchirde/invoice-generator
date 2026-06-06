@@ -2,7 +2,7 @@ import type { Invoice } from "../components/InvoiceForm";
 import {
   BusinessSettings,
   DEFAULT_SETTINGS,
-  loadSettings,
+  loadLocalSettings,
   saveSettings,
 } from "../types/settings";
 
@@ -44,8 +44,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     );
   }
 
+  async clearInvoices(): Promise<void> {
+    localStorage.removeItem("invoices");
+  }
+
   async loadSettings(): Promise<BusinessSettings> {
-    return loadSettings();
+    return loadLocalSettings();
   }
 
   async persistSettings(settings: BusinessSettings): Promise<void> {
