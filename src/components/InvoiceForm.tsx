@@ -625,7 +625,9 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                       {formData.advancePaidDate && (
                         <tr>
                           <td className="pb-1 pr-6 text-gray-500 text-xs">
-                            Advance Paid Date
+                            {formData.dueAmount <= 0
+                              ? "Paid Date"
+                              : "Advance Paid Date"}
                           </td>
                           <td className="pb-1 text-right text-xs text-gray-500">
                             {formatDate(formData.advancePaidDate)}
@@ -662,18 +664,14 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
 
             return singleItem ? (
               <div className="mt-2 mb-8">
-                <div className="flex flex-col items-end">
-                  {totalsBlock}
-                </div>
+                <div className="flex flex-col items-end">{totalsBlock}</div>
                 {termsBlock && <div className="mt-4">{termsBlock}</div>}
               </div>
             ) : (
               <div className="mt-2 mb-8">
                 <div className="flex justify-between gap-8">
                   <div className="flex-1 min-w-0">{termsBlock}</div>
-                  <div className="flex flex-col items-end">
-                    {totalsBlock}
-                  </div>
+                  <div className="flex flex-col items-end">{totalsBlock}</div>
                 </div>
               </div>
             );
@@ -879,6 +877,12 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                           </a>
                         </div>
                       )}
+                    {i === totalPages - 1 && (
+                      <p className="absolute bottom-[6mm] left-[20mm] right-[14mm] z-20 text-center text-[10px] text-gray-500">
+                        This is a computer-generated invoice, no physical
+                        signature is required.
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -1558,7 +1562,11 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                 </div>
                 {formData.paidAmount > 0 && (
                   <div>
-                    <Label htmlFor="advancePaidDate">Advance Paid Date</Label>
+                    <Label htmlFor="advancePaidDate">
+                      {formData.dueAmount <= 0
+                        ? "Paid Date"
+                        : "Advance Paid Date"}
+                    </Label>
                     <Input
                       id="advancePaidDate"
                       type="date"
