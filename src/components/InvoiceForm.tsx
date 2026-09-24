@@ -92,7 +92,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Trash2, Plus, Settings } from "lucide-react";
+import { Trash2, Plus, Settings, X } from "lucide-react";
 import { Switch } from "./ui/switch";
 import type { Currency } from "@/types/settings";
 import { getNextInvoiceNumber } from "@/utils/invoiceNumber";
@@ -149,7 +149,10 @@ export interface Invoice {
   cgst: number;
   total: number;
   paidAmount: number;
+  /** Date when the advance or partial payment was received. */
   advancePaidDate: string;
+  /** Date when the final/remaining balance was paid (invoice fully settled). */
+  lastPaymentDate: string;
   dueAmount: number;
   notes: string;
   paymentInstructions: string;
@@ -211,6 +214,7 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
         total: invoice?.total ?? 0,
         paidAmount: invoice?.paidAmount ?? 0,
         advancePaidDate: invoice?.advancePaidDate ?? "",
+        lastPaymentDate: invoice?.lastPaymentDate ?? "",
         dueAmount: invoice?.dueAmount ?? 0,
         notes: invoice?.notes ?? s.terms,
         paymentInstructions:
@@ -622,15 +626,26 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                           )}
                         </td>
                       </tr>
-                      {formData.advancePaidDate && (
+                      {/* Advance Paid Date — hidden when both dates are identical */}
+                      {formData.advancePaidDate &&
+                        !(formData.advancePaidDate && formData.lastPaymentDate && formData.advancePaidDate === formData.lastPaymentDate) && (
                         <tr>
                           <td className="pb-1 pr-6 text-gray-500 text-xs">
-                            {formData.dueAmount <= 0
-                              ? "Paid Date"
-                              : "Advance Paid Date"}
+                            Advance Paid Date
                           </td>
                           <td className="pb-1 text-right text-xs text-gray-500">
                             {formatDate(formData.advancePaidDate)}
+                          </td>
+                        </tr>
+                      )}
+                      {/* Paid Date — shown only when invoice is fully settled */}
+                      {formData.dueAmount <= 0 && formData.lastPaymentDate && (
+                        <tr>
+                          <td className="pb-1 pr-6 text-gray-500 text-xs">
+                            Paid Date
+                          </td>
+                          <td className="pb-1 text-right text-xs text-gray-500">
+                            {formatDate(formData.lastPaymentDate)}
                           </td>
                         </tr>
                       )}
@@ -1560,24 +1575,78 @@ export const InvoiceForm = forwardRef<InvoiceFormHandle, InvoiceFormProps>(
                     }
                   />
                 </div>
-                {formData.paidAmount > 0 && (
+                {/* Advance Paid Date — only shown when there is still a due amount
+                    (partial payment) OR an advance date was already recorded,
+                    AND the advance date differs from the final paid date. */}
+                {formData.paidAmount > 0 &&
+                  (formData.dueAmount > 0 || !!formData.advancePaidDate) &&
+                  !(formData.advancePaidDate && formData.lastPaymentDate && formData.advancePaidDate === formData.lastPaymentDate) && (
                   <div>
-                    <Label htmlFor="advancePaidDate">
-                      {formData.dueAmount <= 0
-                        ? "Paid Date"
-                        : "Advance Paid Date"}
-                    </Label>
-                    <Input
-                      id="advancePaidDate"
-                      type="date"
-                      value={formData.advancePaidDate}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          advancePaidDate: e.target.value,
-                        }))
-                      }
-                    />
+                    <Label htmlFor="advancePaidDate">Advance Paid Date</Label>
+                    <div className="relative flex items-center">
+                      <Input
+                        id="advancePaidDate"
+                        type="date"
+                        value={formData.advancePaidDate}
+                        className={formData.advancePaidDate ? "pr-8" : ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            advancePaidDate: e.target.value,
+                          }))
+                        }
+                      />
+                      {formData.advancePaidDate && (
+                        <button
+                          type="button"
+                          title="Clear advance paid date"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              advancePaidDate: "",
+                            }))
+                          }
+                          className="absolute right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Paid Date — only shown when fully settled (dueAmount <= 0). */}
+                {formData.paidAmount > 0 && formData.dueAmount <= 0 && (
+                  <div>
+                    <Label htmlFor="lastPaymentDate">Paid Date</Label>
+                    <div className="relative flex items-center">
+                      <Input
+                        id="lastPaymentDate"
+                        type="date"
+                        value={formData.lastPaymentDate}
+                        className={formData.lastPaymentDate ? "pr-8" : ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            lastPaymentDate: e.target.value,
+                          }))
+                        }
+                      />
+                      {formData.lastPaymentDate && (
+                        <button
+                          type="button"
+                          title="Clear paid date"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              lastPaymentDate: "",
+                            }))
+                          }
+                          className="absolute right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
