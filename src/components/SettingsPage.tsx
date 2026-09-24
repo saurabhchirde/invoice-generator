@@ -5,7 +5,7 @@ import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { BusinessSettings } from "@/types/settings";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X, Loader2, Mail, FileText, User } from "lucide-react";
 import { isFirebaseEnabled } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { uploadImage, deleteImage } from "@/lib/firebaseStorage";
@@ -43,7 +43,7 @@ export function SettingsPage({
   const [logoLoading, setLogoLoading] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
   const { user } = useAuth();
-  const { queueImageDeletion } = useApp();
+  const { queueImageDeletion, invoices } = useApp();
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,8 +103,68 @@ export function SettingsPage({
     update({ qrCode: "" });
   };
 
+  // Derive initials from the user's display name for the avatar fallback
+  const initials = user?.displayName
+    ? user.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      {/* ── Profile Card ─────────────────────────────────────────── */}
+      {isFirebaseEnabled && user && (
+        <Card className="mb-6">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+              {/* Avatar */}
+              <div className="shrink-0">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName ?? "Profile"}
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ring-2 ring-gray-200">
+                    <span className="text-white text-xl font-semibold">{initials}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <p className="text-base font-semibold text-gray-900 truncate">
+                  {user.displayName ?? "Google User"}
+                </p>
+                <div className="mt-2 flex flex-col sm:flex-row flex-wrap justify-center sm:justify-start gap-x-5 gap-y-1.5">
+                  {user.email && (
+                    <span className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-gray-500">
+                      <Mail className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                      <span className="truncate">{user.email}</span>
+                    </span>
+                  )}
+                  <span className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-gray-500">
+                    <FileText className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                    {invoices.length === 1
+                      ? "1 invoice"
+                      : `${invoices.length} invoices`}
+                  </span>
+                  <span className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-gray-500">
+                    <User className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                    Signed in with Google
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Business Info */}
         <Card className="flex flex-col gap-0">

@@ -58,9 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     await signOutUser();
-    // When signing out, set guest flag so they don't see login screen again
-    sessionStorage.setItem(GUEST_FLAG_KEY, "true");
-    setIsGuest(true);
+    // Clear any guest flag so the LoginScreen is shown after sign-out
+    sessionStorage.removeItem(GUEST_FLAG_KEY);
+    setIsGuest(false);
   };
 
   return (
